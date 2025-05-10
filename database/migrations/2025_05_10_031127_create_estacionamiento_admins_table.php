@@ -11,10 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('estacionamiento_admins', function (Blueprint $table) {
+        Schema::create('estacionamientoadmin', function (Blueprint $table) {
             $table->id();
+            $table->string('nombre', 100);
+            $table->string('correo', 100);
+            $table->string('ubicacion', 255)->nullable();
+            $table->integer('plazas_totales');
+            $table->decimal('precio_hora', 10, 2);
+            $table->decimal('precio_mes', 10, 2);
             $table->timestamps();
         });
+
     }
 
     /**

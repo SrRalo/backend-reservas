@@ -12,8 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('pagos', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        $table->id();
+        $table->dateTime('hora_salida')->nullable();
+        $table->decimal('valor', 10, 2)->nullable();
+        $table->boolean('estado')->default(false);
+        $table->timestamps();
         });
     }
 

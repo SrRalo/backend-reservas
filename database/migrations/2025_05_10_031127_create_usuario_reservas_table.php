@@ -11,9 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('usuario_reservas', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::create('usuario_reserva', function (Blueprint $table) {
+        $table->id();
+        $table->string('nombre', 100);
+        $table->string('correo', 100);
+        $table->string('telefono', 20)->nullable();
+        $table->string('Rol', 45);
+        $table->timestamps();
         });
     }
 

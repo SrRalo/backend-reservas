@@ -11,9 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('penalizacions', function (Blueprint $table) {
-            $table->id();
+        Schema::create('penalizaciones', function (Blueprint $table) {
+            $table->id('ID');
+            $table->string('Motivo', 100);
+            $table->timestamp('Fecha')->useCurrent();
+            $table->unsignedBigInteger('usuario_reserva_id');
+            $table->unsignedBigInteger('ticket_id_ticket');
+            $table->boolean('Estado')->default(false);
             $table->timestamps();
+
+            $table->foreign('usuario_reserva_id')->references('id')->on('usuario_reserva');
+            $table->foreign('ticket_id_ticket')->references('id_ticket')->on('ticket');
         });
     }
 

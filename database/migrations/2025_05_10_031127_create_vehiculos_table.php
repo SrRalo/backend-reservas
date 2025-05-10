@@ -12,8 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('vehiculos', function (Blueprint $table) {
-            $table->id();
+            $table->string('placa', 20)->primary();
+            $table->unsignedBigInteger('id_usuario_reserva')->nullable();
+            $table->string('tipo', 50)->nullable();
+            $table->dateTime('hora_entrada')->nullable();
             $table->timestamps();
+
+            $table->foreign('id_usuario_reserva')->references('id')->on('usuario_reserva')->nullOnDelete();
         });
     }
 
