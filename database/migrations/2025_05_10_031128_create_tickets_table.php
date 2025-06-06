@@ -20,9 +20,10 @@ return new class extends Migration
             $table->boolean('Excepcion')->default(false);
             $table->timestamps();
 
-            $table->foreign('id_usuario_reserva')->references('id')->on('usuario_reserva')->nullOnDelete();
-            $table->foreign('id_usuario_registrador')->references('id')->on('estacionamientoadmin')->nullOnDelete();
-            $table->foreign('vehiculo_placa')->references('placa')->on('vehiculo');
+            // Corrección de nombres de tablas y columnas
+            $table->foreign('id_usuario_reserva')->references('id')->on('usuario_reserva')->onDelete('set null');
+            $table->foreign('id_usuario_registrador')->references('id')->on('estacionamientoadmin')->onDelete('set null');
+            $table->foreign('vehiculo_placa')->references('placa')->on('vehiculos');
             $table->foreign('pagos_id')->references('id')->on('pagos');
         });
     }

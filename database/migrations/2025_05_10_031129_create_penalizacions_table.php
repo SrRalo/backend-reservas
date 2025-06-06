@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('usuario_reserva_id')->references('id')->on('usuario_reserva');
-            $table->foreign('ticket_id_ticket')->references('id_ticket')->on('ticket');
+            $table->foreign('ticket_id_ticket')->references('id_ticket')->on('tickets');
         });
     }
 
