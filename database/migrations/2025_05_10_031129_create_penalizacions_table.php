@@ -12,16 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('penalizaciones', function (Blueprint $table) {
-            $table->id('ID');
-            $table->string('Motivo', 100);
-            $table->timestamp('Fecha')->useCurrent();
+            $table->id();
+            $table->string('motivo', 255);
+            $table->enum('tipo', ['tiempo_excedido', 'dano_propiedad', 'mal_estacionamiento'])->nullable();
+            $table->timestamp('fecha')->useCurrent();
             $table->unsignedBigInteger('usuario_reserva_id');
-            $table->unsignedBigInteger('ticket_id_ticket');
-            $table->boolean('Estado')->default(false);
+            $table->unsignedBigInteger('ticket_id');
+            $table->enum('estado', ['activa', 'pagada', 'cancelada'])->default('activa');
+            $table->decimal('monto', 10, 2)->nullable();
             $table->timestamps();
 
-            $table->foreign('usuario_reserva_id')->references('id')->on('usuario_reserva');
-            $table->foreign('ticket_id_ticket')->references('id_ticket')->on('tickets');
+            $table->foreign('usuario_reserva_id')->references('id')->on('usuario_reserva')->onDelete('cascade');
+            $table->foreign('ticket_id')->references('id')->on('tickets')->onDelete('cascade');
         });
     }
 

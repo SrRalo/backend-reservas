@@ -12,12 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('usuario_reserva', function (Blueprint $table) {
-        $table->id();
-        $table->string('nombre', 100);
-        $table->string('correo', 100);
-        $table->string('telefono', 20)->nullable();
-        $table->string('Rol', 45);
-        $table->timestamps();
+            $table->id();
+            $table->string('nombre', 100);
+            $table->string('apellido', 100)->nullable();
+            $table->string('email', 100)->unique();
+            $table->string('documento', 20)->unique();
+            $table->string('telefono', 20)->nullable();
+            $table->string('password'); // Campo para autenticación
+            $table->timestamp('email_verified_at')->nullable();
+            $table->rememberToken();
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo');
+            $table->timestamp('ultimo_acceso')->nullable();
+            $table->timestamps();
         });
     }
 

@@ -12,19 +12,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tickets', function (Blueprint $table) {
-            $table->id('id_ticket');
-            $table->unsignedBigInteger('id_usuario_reserva');
-            $table->unsignedBigInteger('id_usuario_registrador');
-            $table->string('vehiculo_placa', 20);
-            $table->unsignedBigInteger('pagos_id');
-            $table->boolean('Excepcion')->default(false);
+            $table->id();
+            $table->unsignedBigInteger('usuario_id');
+            $table->string('vehiculo_id', 20);
+            $table->unsignedBigInteger('estacionamiento_id');
+            $table->string('codigo_ticket', 50)->unique();
+            $table->timestamp('fecha_entrada');
+            $table->timestamp('fecha_salida')->nullable();
+            $table->enum('tipo_reserva', ['por_horas', 'mensual'])->default('por_horas');
+            $table->enum('estado', ['activo', 'finalizado', 'cancelado', 'pagado'])->default('activo');
+            $table->decimal('precio_total', 10, 2)->nullable();
             $table->timestamps();
 
-            // Corrección de nombres de tablas y columnas
-            $table->foreign('id_usuario_reserva')->references('id')->on('usuario_reserva')->onDelete('set null');
-            $table->foreign('id_usuario_registrador')->references('id')->on('estacionamientoadmin')->onDelete('set null');
-            $table->foreign('vehiculo_placa')->references('placa')->on('vehiculos');
-            $table->foreign('pagos_id')->references('id')->on('pagos');
+            // Foreign keys
+            $table->foreign('usuario_id')->references('id')->on('usuario_reserva')->onDelete('cascade');
+            $table->foreign('vehiculo_id')->references('placa')->on('vehiculos')->onDelete('cascade');
+            $table->foreign('estacionamiento_id')->references('id')->on('estacionamientoadmin')->onDelete('cascade');
         });
     }
 

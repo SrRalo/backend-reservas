@@ -14,14 +14,15 @@ return new class extends Migration
         Schema::create('estacionamientoadmin', function (Blueprint $table) {
             $table->id();
             $table->string('nombre', 100);
-            $table->string('correo', 100);
-            $table->string('ubicacion', 255)->nullable();
-            $table->integer('plazas_totales');
-            $table->decimal('precio_hora', 10, 2);
-            $table->decimal('precio_mes', 10, 2);
+            $table->string('email', 100)->unique();
+            $table->string('direccion', 255);
+            $table->integer('espacios_totales');
+            $table->integer('espacios_disponibles');
+            $table->decimal('precio_por_hora', 10, 2);
+            $table->decimal('precio_mensual', 10, 2);
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo');
             $table->timestamps();
         });
-
     }
 
     /**

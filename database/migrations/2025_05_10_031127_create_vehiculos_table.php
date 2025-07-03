@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('vehiculos', function (Blueprint $table) {
             $table->string('placa', 20)->primary();
-            $table->unsignedBigInteger('id_usuario_reserva')->nullable();
-            $table->string('tipo', 50)->nullable();
-            $table->dateTime('hora_entrada')->nullable();
+            $table->unsignedBigInteger('usuario_id');
+            $table->string('modelo', 100);
+            $table->string('color', 50);
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo');
             $table->timestamps();
 
-            $table->foreign('id_usuario_reserva')->references('id')->on('usuario_reserva')->nullOnDelete();
+            $table->foreign('usuario_id')->references('id')->on('usuario_reserva')->onDelete('cascade');
         });
     }
 
