@@ -19,6 +19,7 @@ class UsuarioAuthController extends Controller
             'documento' => 'required|string|max:20|unique:usuario_reserva',
             'telefono' => 'nullable|string|max:20',
             'password' => 'required|string|min:8',
+            'password_confirmation' => 'required|string|same:password',
         ]);
 
         $user = UsuarioReserva::create([

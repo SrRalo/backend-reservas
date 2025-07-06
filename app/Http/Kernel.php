@@ -1,6 +1,4 @@
 <?php
-<<<<<<< HEAD
-
 
 namespace App\Http;
 
@@ -68,9 +66,3 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
     ];
 }
-=======
-protected $middleware = [
-    // ...
-    \Fruitcake\Cors\HandleCors::class,
-];
->>>>>>> b3cca464569c158ed8ba21f4cf8b869499ce73f4
