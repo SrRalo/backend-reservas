@@ -15,4 +15,8 @@ interface UsuarioReservaRepositoryInterface extends BaseRepositoryInterface
     public function searchByName(string $name): Collection;
     public function getUsersWithReservations(): Collection;
     public function updateLastLogin(int $userId): bool;
+    
+    // Nuevos métodos para gestión de roles
+    public function getByRole(string $role): Collection;
+    public function getRoleStatistics(): array;
 }

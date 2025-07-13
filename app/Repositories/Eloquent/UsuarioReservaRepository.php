@@ -63,4 +63,28 @@ class UsuarioReservaRepository extends BaseRepository implements UsuarioReservaR
         //           ->distinct();
         // })->get();
     }
+
+    public function getByRole(string $role): Collection
+    {
+        return $this->model->role($role)->get();
+    }
+
+    public function getRoleStatistics(): array
+    {
+        $total = $this->model->count();
+        $admin = $this->model->admins()->count();
+        $registrador = $this->model->registradores()->count();
+        $reservador = $this->model->reservadores()->count();
+        $activos = $this->model->where('estado', 'activo')->count();
+        $inactivos = $this->model->where('estado', 'inactivo')->count();
+
+        return [
+            'total' => $total,
+            'admin' => $admin,
+            'registrador' => $registrador,
+            'reservador' => $reservador,
+            'activos' => $activos,
+            'inactivos' => $inactivos,
+        ];
+    }
 }

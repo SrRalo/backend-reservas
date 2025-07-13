@@ -10,12 +10,15 @@ class Vehiculo extends Model
     use HasFactory;
 
     protected $table = 'vehiculos';
+    
+    // Especificar que la clave primaria es 'placa' y no es auto-incremental
+    protected $primaryKey = 'placa';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'usuario_id',
         'placa',
-        'tipo',
-        'marca',
         'modelo',
         'color',
         'estado'

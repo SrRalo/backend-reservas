@@ -19,7 +19,7 @@ class DatabaseTest extends TestCase
     public function test_migrations_run()
     {
         // Verificar que las tablas principales existen
-        $this->assertTrue(\Schema::hasTable('usuario_reserva'));
+        $this->assertTrue(\Schema::hasTable('usuarios'));
         $this->assertTrue(\Schema::hasTable('estacionamientoadmin'));
         $this->assertTrue(\Schema::hasTable('vehiculos'));
         $this->assertTrue(\Schema::hasTable('tickets'));

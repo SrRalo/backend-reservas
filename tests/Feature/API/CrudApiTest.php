@@ -79,7 +79,7 @@ class CrudApiTest extends TestCase
                     ]
                 ]);
 
-        $this->assertDatabaseHas('usuario_reserva', [
+        $this->assertDatabaseHas('usuarios', [
             'email' => 'nuevo@example.com',
             'nombre' => 'Nuevo Usuario'
         ]);
@@ -126,7 +126,7 @@ class CrudApiTest extends TestCase
                     ]
                 ]);
 
-        $this->assertDatabaseHas('usuario_reserva', [
+        $this->assertDatabaseHas('usuarios', [
             'id' => $this->user->id,
             'nombre' => 'Nombre Actualizado',
             'documento' => '11223344'
@@ -148,7 +148,7 @@ class CrudApiTest extends TestCase
                     'success' => true
                 ]);
 
-        $this->assertDatabaseMissing('usuario_reserva', [
+        $this->assertDatabaseMissing('usuarios', [
             'id' => $newUser->id
         ]);
     }

@@ -11,8 +11,8 @@ class UsuarioReserva extends Authenticatable
 {
     use HasFactory, HasApiTokens, Notifiable;
 
-    // ✅ Especificar tabla (singular)
-    protected $table = 'usuario_reserva';
+    // ✅ Especificar tabla (ahora usuarios)
+    protected $table = 'usuarios';
 
     // ✅ Campos que se pueden asignar masivamente
     protected $fillable = [
@@ -22,6 +22,7 @@ class UsuarioReserva extends Authenticatable
         'documento',
         'telefono',
         'password',
+        'role',
         'estado',
         'ultimo_acceso'
     ];
@@ -49,7 +50,82 @@ class UsuarioReserva extends Authenticatable
     // ✅ Valores por defecto
     protected $attributes = [
         'estado' => 'activo',
+        'role' => 'reservador',
     ];
+
+    // ✅ Métodos para trabajar con roles
+    
+    /**
+     * Verificar si el usuario es administrador
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Verificar si el usuario es registrador
+     */
+    public function isRegistrador(): bool
+    {
+        return $this->role === 'registrador';
+    }
+
+    /**
+     * Verificar si el usuario es reservador
+     */
+    public function isReservador(): bool
+    {
+        return $this->role === 'reservador';
+    }
+
+    /**
+     * Verificar si el usuario tiene un rol específico
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * Verificar si el usuario tiene cualquiera de los roles dados
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        return in_array($this->role, $roles);
+    }
+
+    /**
+     * Scope para filtrar usuarios por rol
+     */
+    public function scopeRole($query, string $role)
+    {
+        return $query->where('role', $role);
+    }
+
+    /**
+     * Scope para obtener solo administradores
+     */
+    public function scopeAdmins($query)
+    {
+        return $query->where('role', 'admin');
+    }
+
+    /**
+     * Scope para obtener solo registradores
+     */
+    public function scopeRegistradores($query)
+    {
+        return $query->where('role', 'registrador');
+    }
+
+    /**
+     * Scope para obtener solo reservadores
+     */
+    public function scopeReservadores($query)
+    {
+        return $query->where('role', 'reservador');
+    }
 
     // ✅ Relación con tickets (para el método getUsersWithReservations)
     public function tickets()

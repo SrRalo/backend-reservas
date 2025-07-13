@@ -42,7 +42,7 @@ return [
         ],
         'api' => [
             'driver' => 'sanctum',
-            'provider' => 'usuario_reservas',
+            'provider' => 'usuarios',
             'hash' => false,
         ],
     ],
@@ -70,7 +70,7 @@ return [
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
 
-        'usuario_reservas' => [
+        'usuarios' => [
             'driver' => 'eloquent',
             'model' => App\Models\UsuarioReserva::class,
         ],

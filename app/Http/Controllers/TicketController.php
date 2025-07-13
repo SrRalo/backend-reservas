@@ -192,16 +192,16 @@ class TicketController extends Controller
     }
 
     /**
-     * Get active tickets
+     * Get all active tickets for admin management
      */
     public function getActiveTickets(): JsonResponse
     {
         try {
-            $tickets = $this->ticketRepository->findActiveTickets();
+            $activeTickets = $this->ticketRepository->getByStatus(['activo']);
             
             return response()->json([
                 'success' => true,
-                'data' => $tickets,
+                'data' => $activeTickets,
                 'message' => 'Tickets activos obtenidos exitosamente'
             ]);
         } catch (\Exception $e) {
@@ -214,12 +214,12 @@ class TicketController extends Controller
     }
 
     /**
-     * Get tickets by user
+     * Get tickets by user ID
      */
     public function getTicketsByUser(int $userId): JsonResponse
     {
         try {
-            $tickets = $this->ticketRepository->findByUsuario($userId);
+            $tickets = $this->ticketRepository->getByUser($userId);
             
             return response()->json([
                 'success' => true,
@@ -241,7 +241,7 @@ class TicketController extends Controller
     public function getTicketByCode(string $codigo): JsonResponse
     {
         try {
-            $ticket = $this->ticketRepository->findByCodigo($codigo);
+            $ticket = $this->ticketRepository->getByCode($codigo);
             
             if (!$ticket) {
                 return response()->json([
@@ -249,7 +249,7 @@ class TicketController extends Controller
                     'message' => 'Ticket no encontrado'
                 ], 404);
             }
-
+            
             return response()->json([
                 'success' => true,
                 'data' => $ticket,
@@ -265,35 +265,38 @@ class TicketController extends Controller
     }
 
     /**
-     * Finalize ticket (checkout)
+     * Finalize a ticket (admin action)
      */
-    public function finalizeTicket(Request $request, int $id): JsonResponse
+    public function finalizeTicket(int $id): JsonResponse
     {
         try {
-            $validatedData = $request->validate([
-                'precio_total' => 'required|numeric|min:0'
-            ]);
-
-            $result = $this->ticketRepository->finalizarTicket($id, $validatedData['precio_total']);
-
-            if (!$result) {
+            $ticket = $this->ticketRepository->find($id);
+            
+            if (!$ticket) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se pudo finalizar el ticket'
+                    'message' => 'Ticket no encontrado'
+                ], 404);
+            }
+
+            if ($ticket->estado !== 'activo') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo se pueden finalizar tickets activos'
                 ], 400);
             }
 
+            $updatedTicket = $this->ticketRepository->update($id, [
+                'estado' => 'finalizado',
+                'fecha_salida' => now()
+            ]);
+
             return response()->json([
                 'success' => true,
+                'data' => $updatedTicket,
                 'message' => 'Ticket finalizado exitosamente'
             ]);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Datos de validación incorrectos',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
             Log::error('Error finalizando ticket: ' . $e->getMessage());
             return response()->json([

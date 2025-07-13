@@ -15,11 +15,12 @@ class UsuarioAuthController extends Controller
         $validatedData = $request->validate([
             'nombre' => 'required|string|max:255',
             'apellido' => 'nullable|string|max:255',
-            'email' => 'required|string|email|max:255|unique:usuario_reserva',
-            'documento' => 'required|string|max:20|unique:usuario_reserva',
+            'email' => 'required|string|email|max:255|unique:usuarios',
+            'documento' => 'required|string|max:20|unique:usuarios',
             'telefono' => 'nullable|string|max:20',
             'password' => 'required|string|min:8',
             'password_confirmation' => 'required|string|same:password',
+            'role' => 'sometimes|in:registrador,reservador', // Solo estos roles desde registro
         ]);
 
         $user = UsuarioReserva::create([
@@ -29,6 +30,7 @@ class UsuarioAuthController extends Controller
             'documento' => $validatedData['documento'],
             'telefono' => $validatedData['telefono'] ?? null,
             'password' => Hash::make($validatedData['password']),
+            'role' => $validatedData['role'] ?? 'reservador', // Default: reservador
             'estado' => 'activo',
         ]);
 
@@ -44,6 +46,7 @@ class UsuarioAuthController extends Controller
                     'email' => $user->email,
                     'documento' => $user->documento,
                     'telefono' => $user->telefono,
+                    'role' => $user->role,
                     'estado' => $user->estado,
                 ],
                 'access_token' => $token,
@@ -92,6 +95,7 @@ class UsuarioAuthController extends Controller
                     'documento' => $user->documento,
                     'telefono' => $user->telefono,
                     'estado' => $user->estado,
+                    'role' => $user->role,
                 ],
                 'access_token' => $token,
                 'token_type' => 'Bearer',
@@ -124,6 +128,7 @@ class UsuarioAuthController extends Controller
                     'documento' => $user->documento,
                     'telefono' => $user->telefono,
                     'estado' => $user->estado,
+                    'role' => $user->role,
                 ]
             ]
         ]);

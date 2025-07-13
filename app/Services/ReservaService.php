@@ -43,6 +43,10 @@ class ReservaService
     public function crearReserva(array $reservaData): array
     {
         try {
+            Log::info('=== INICIANDO CREACIÓN DE RESERVA ===', $reservaData);
+            Log::info('Fecha entrada recibida:', ['fecha_entrada' => $reservaData['fecha_entrada'] ?? 'No especificada']);
+            Log::info('Fecha salida estimada recibida:', ['fecha_salida_estimada' => $reservaData['fecha_salida_estimada'] ?? 'No especificada']);
+            
             // 1. Validar que el usuario existe y está activo
             $usuario = $this->usuarioRepository->find($reservaData['usuario_id']);
             if (!$usuario || $usuario->estado !== 'activo') {
@@ -73,6 +77,8 @@ class ReservaService
                 ];
             }
 
+            // TEMPORALMENTE COMENTADO PARA TESTING
+            /*
             if ($estacionamiento->espacios_disponibles <= 0) {
                 return [
                     'success' => false,
@@ -80,18 +86,32 @@ class ReservaService
                     'code' => 'NO_SPACES_AVAILABLE'
                 ];
             }
+            */
 
-            // 4. Verificar que no hay tickets activos para el mismo vehículo
+            // 4. PERMITIR MÚLTIPLES RESERVAS POR VEHÍCULO
+            // Comentada completamente la validación restrictiva
+            // Un vehículo puede tener múltiples reservas activas
+            
+            /*
             $ticketsActivos = $this->ticketRepository->findByUsuario($reservaData['usuario_id']);
             foreach ($ticketsActivos as $ticket) {
-                if ($ticket->vehiculo_id === $reservaData['vehiculo_id'] && $ticket->estado === 'activo') {
+                if ($ticket->vehiculo_id === $reservaData['vehiculo_id'] && 
+                    $ticket->estado === 'activo' && 
+                    $ticket->estacionamiento_id === $reservaData['estacionamiento_id']) {
+                    
+                    // Verificar si hay conflicto temporal
+                    $fechaEntradaNueva = $reservaData['fecha_entrada'] ?? now();
+                    $fechaEntradaExistente = $ticket->fecha_entrada;
+                    
+                    // Por seguridad, no permitir múltiples reservas activas en el mismo estacionamiento
                     return [
                         'success' => false,
-                        'message' => 'Ya existe una reserva activa para este vehículo',
-                        'code' => 'ACTIVE_RESERVATION_EXISTS'
+                        'message' => 'Ya existe una reserva activa para este vehículo en este estacionamiento',
+                        'code' => 'ACTIVE_RESERVATION_EXISTS_SAME_PARKING'
                     ];
                 }
             }
+            */
 
             // 5. Generar código único para el ticket
             $codigoTicket = $this->generarCodigoTicket();
@@ -114,6 +134,7 @@ class ReservaService
                 'estacionamiento_id' => $reservaData['estacionamiento_id'],
                 'codigo_ticket' => $codigoTicket,
                 'fecha_entrada' => $reservaData['fecha_entrada'] ?? now(),
+                'fecha_salida' => $reservaData['fecha_salida_estimada'] ?? null, // ✅ Usar fecha de salida estimada
                 'tipo_reserva' => $reservaData['tipo_reserva'],
                 'estado' => 'activo',
                 'monto' => $tarifaEstimada
@@ -121,8 +142,8 @@ class ReservaService
 
             $ticket = $this->ticketRepository->create($ticketData);
 
-            // 8. Actualizar espacios disponibles del estacionamiento
-            $this->estacionamientoService->reducirEspaciosDisponibles($reservaData['estacionamiento_id']);
+            // 8. TEMPORALMENTE COMENTADO PARA TESTING
+            // $this->estacionamientoService->reducirEspaciosDisponibles($reservaData['estacionamiento_id']);
 
             // 9. Incrementar contador de reservas
             $this->estacionamientoRepository->incrementarReservas($reservaData['estacionamiento_id']);

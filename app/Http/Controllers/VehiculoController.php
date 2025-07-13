@@ -78,10 +78,10 @@ class VehiculoController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(int $id): JsonResponse
+    public function show(string $placa): JsonResponse
     {
         try {
-            $vehiculo = $this->vehiculoRepository->find($id);
+            $vehiculo = $this->vehiculoRepository->findByPlaca($placa);
             
             if (!$vehiculo) {
                 return response()->json([
@@ -107,10 +107,10 @@ class VehiculoController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, string $placa): JsonResponse
     {
         try {
-            $vehiculo = $this->vehiculoRepository->find($id);
+            $vehiculo = $this->vehiculoRepository->findByPlaca($placa);
             
             if (!$vehiculo) {
                 return response()->json([
@@ -120,14 +120,16 @@ class VehiculoController extends Controller
             }
 
             $validatedData = $request->validate([
-                'placa' => 'sometimes|string|max:20|unique:vehiculos,placa,' . $id,
+                'placa' => 'sometimes|string|max:20|unique:vehiculos,placa,' . $placa . ',placa',
                 'modelo' => 'sometimes|string|max:100',
                 'color' => 'sometimes|string|max:50',
                 'usuario_id' => 'sometimes|integer',
                 'estado' => 'sometimes|in:activo,inactivo'
             ]);
 
-            $updatedVehiculo = $this->vehiculoRepository->update($id, $validatedData);
+            // Actualizar usando el modelo directamente ya que BaseRepository espera ID
+            $vehiculo->update($validatedData);
+            $updatedVehiculo = $vehiculo->fresh();
 
             return response()->json([
                 'success' => true,
@@ -153,10 +155,10 @@ class VehiculoController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(string $placa): JsonResponse
     {
         try {
-            $vehiculo = $this->vehiculoRepository->find($id);
+            $vehiculo = $this->vehiculoRepository->findByPlaca($placa);
             
             if (!$vehiculo) {
                 return response()->json([
@@ -165,7 +167,8 @@ class VehiculoController extends Controller
                 ], 404);
             }
 
-            $this->vehiculoRepository->delete($id);
+            // Eliminar usando el modelo directamente
+            $vehiculo->delete();
 
             return response()->json([
                 'success' => true,

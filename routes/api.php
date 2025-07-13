@@ -10,6 +10,7 @@ use App\Http\Controllers\VehiculoController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PenalizacionController;
 use App\Http\Controllers\Business\ReservaBusinessController;
+use App\Http\Controllers\Business\ReportesBusinessController;
 
 // Rutas públicas de autenticación
 Route::post('/register', [UsuarioAuthController::class, 'register']);
@@ -22,6 +23,23 @@ Route::get('/ping', function () {
 
 Route::post('/test', function (Request $request) {
     return response()->json(['ok' => true, 'data' => $request->all()]);
+});
+
+// Endpoint temporal para probar tickets (sin autenticación)
+Route::get('/test-tickets', function () {
+    try {
+        $tickets = App\Models\Ticket::with(['usuario', 'vehiculo', 'estacionamiento'])->get();
+        return response()->json([
+            'success' => true,
+            'count' => $tickets->count(),
+            'data' => $tickets
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
 });
 
 // Rutas protegidas por autenticación
@@ -52,6 +70,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Reportes y resúmenes
         Route::get('/usuarios/{usuarioId}/resumen', [ReservaBusinessController::class, 'getResumenUsuario']);
         Route::get('/estacionamientos/{estacionamientoId}/reporte', [ReservaBusinessController::class, 'getReporteOcupacion']);
+        
+        // Nuevos endpoints de reportes avanzados
+        Route::get('/reportes/ingresos', [ReportesBusinessController::class, 'getIncomeReport']);
+        Route::get('/reportes/estadisticas', [ReportesBusinessController::class, 'getReservationStats']);
+        Route::get('/reportes/por-estado', [ReportesBusinessController::class, 'getReservationsByStatus']);
     });
     
     // Tickets routes (CRUD básico)
@@ -66,13 +89,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tickets/{id}/finalize', [TicketController::class, 'finalizeTicket']);
     
     // Usuarios routes
-    Route::get('/usuarios', [UsuarioReservaController::class, 'index']);
-    Route::post('/usuarios', [UsuarioReservaController::class, 'store']);
-    Route::get('/usuarios/{id}', [UsuarioReservaController::class, 'show']);
-    Route::put('/usuarios/{id}', [UsuarioReservaController::class, 'update']);
-    Route::delete('/usuarios/{id}', [UsuarioReservaController::class, 'destroy']);
-    Route::get('/usuarios/email/{email}', [UsuarioReservaController::class, 'getUserByEmail']);
-    Route::get('/usuarios/active/list', [UsuarioReservaController::class, 'getActiveUsers']);
+    Route::get('/usuarios', [UsuarioReservaController::class, 'index'])->middleware('role:admin');
+    Route::post('/usuarios', [UsuarioReservaController::class, 'store'])->middleware('role:admin');
+    Route::get('/usuarios/{id}', [UsuarioReservaController::class, 'show'])->middleware('role:admin,registrador');
+    Route::put('/usuarios/{id}', [UsuarioReservaController::class, 'update'])->middleware('role:admin');
+    Route::delete('/usuarios/{id}', [UsuarioReservaController::class, 'destroy'])->middleware('role:admin');
+    Route::get('/usuarios/email/{email}', [UsuarioReservaController::class, 'getUserByEmail'])->middleware('role:admin');
+    Route::get('/usuarios/active/list', [UsuarioReservaController::class, 'getActiveUsers'])->middleware('role:admin,registrador');
+    
+    // Nuevas rutas para gestión de roles
+    Route::get('/usuarios/role/{role}', [UsuarioReservaController::class, 'getUsersByRole'])->middleware('role:admin');
+    Route::put('/usuarios/{id}/role', [UsuarioReservaController::class, 'updateRole'])->middleware('role:admin');
+    Route::get('/usuarios/stats/roles', [UsuarioReservaController::class, 'getRoleStats'])->middleware('role:admin');
     
     // Estacionamientos routes
     Route::get('/estacionamientos', [EstacionamientoAdminController::class, 'index']);
@@ -88,9 +116,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Vehiculos routes
     Route::get('/vehiculos', [VehiculoController::class, 'index']);
     Route::post('/vehiculos', [VehiculoController::class, 'store']);
-    Route::get('/vehiculos/{id}', [VehiculoController::class, 'show']);
-    Route::put('/vehiculos/{id}', [VehiculoController::class, 'update']);
-    Route::delete('/vehiculos/{id}', [VehiculoController::class, 'destroy']);
+    Route::get('/vehiculos/{placa}', [VehiculoController::class, 'show']);
+    Route::put('/vehiculos/{placa}', [VehiculoController::class, 'update']);
+    Route::delete('/vehiculos/{placa}', [VehiculoController::class, 'destroy']);
     Route::get('/vehiculos/placa/{placa}', [VehiculoController::class, 'getVehicleByPlaca']);
     Route::get('/vehiculos/user/{userId}', [VehiculoController::class, 'getVehiclesByUser']);
     

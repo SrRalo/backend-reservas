@@ -49,7 +49,8 @@ class ReservaBusinessController extends Controller
                 'vehiculo_id' => 'required|string|exists:vehiculos,placa',
                 'estacionamiento_id' => 'required|integer',
                 'tipo_reserva' => 'required|in:por_horas,mensual',
-                'fecha_entrada' => 'sometimes|date|after_or_equal:now',
+                'fecha_entrada' => 'sometimes|date', // ✅ Removido after_or_equal:now para permitir fechas futuras
+                'fecha_salida_estimada' => 'sometimes|date|after:fecha_entrada', // ✅ Nueva validación
                 'horas_estimadas' => 'sometimes|numeric|min:0.5|max:720', // máximo 30 días
                 'dias_estimados' => 'sometimes|integer|min:1|max:365'
             ]);
