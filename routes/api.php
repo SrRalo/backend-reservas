@@ -42,6 +42,78 @@ Route::get('/test-tickets', function () {
     }
 });
 
+// Endpoint temporal para finalizar tickets (sin autenticación)
+Route::post('/test-tickets/{id}/finalize', function ($id) {
+    try {
+        $ticket = App\Models\Ticket::find($id);
+        
+        if (!$ticket) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ticket no encontrado'
+            ], 404);
+        }
+
+        if ($ticket->estado !== 'activo') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden finalizar tickets activos'
+            ], 400);
+        }
+
+        $ticket->update([
+            'estado' => 'finalizado',
+            'fecha_salida' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $ticket,
+            'message' => 'Ticket finalizado exitosamente'
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Endpoint temporal para reportar tickets (sin autenticación)
+Route::post('/test-tickets/{id}/report', function ($id, Request $request) {
+    try {
+        $ticket = App\Models\Ticket::find($id);
+        
+        if (!$ticket) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ticket no encontrado'
+            ], 404);
+        }
+
+        $reason = $request->input('reason', 'Sin motivo especificado');
+
+        $ticket->update([
+            'estado' => 'cancelado',
+            'observaciones' => 'REPORTADO: ' . $reason,
+            'fecha_salida' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $ticket,
+            'message' => 'Ticket reportado exitosamente'
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Rutas protegidas por autenticación
 Route::middleware('auth:sanctum')->group(function () {
     // Auth routes
