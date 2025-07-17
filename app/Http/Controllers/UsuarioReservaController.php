@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Repositories\Interfaces\UsuarioReservaRepositoryInterface;
+use App\Services\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -11,10 +12,14 @@ use Illuminate\Support\Facades\Hash;
 class UsuarioReservaController extends Controller
 {
     private UsuarioReservaRepositoryInterface $usuarioRepository;
+    private AuthService $authService;
 
-    public function __construct(UsuarioReservaRepositoryInterface $usuarioRepository)
-    {
+    public function __construct(
+        UsuarioReservaRepositoryInterface $usuarioRepository,
+        AuthService $authService
+    ) {
         $this->usuarioRepository = $usuarioRepository;
+        $this->authService = $authService;
     }
 
     /**

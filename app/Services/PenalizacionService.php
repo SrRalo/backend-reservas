@@ -2,23 +2,29 @@
 
 namespace App\Services;
 
+use App\Models\Penalizacion;
+use App\Repositories\Interfaces\PenalizacionRepositoryInterface;
 use App\Repositories\Interfaces\TicketRepositoryInterface;
 use App\Repositories\Interfaces\EstacionamientoAdminRepositoryInterface;
 use App\Services\TarifaCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class PenalizacionService
 {
+    private PenalizacionRepositoryInterface $penalizacionRepository;
     private TicketRepositoryInterface $ticketRepository;
     private EstacionamientoAdminRepositoryInterface $estacionamientoRepository;
     private TarifaCalculatorService $tarifaCalculator;
 
     public function __construct(
+        PenalizacionRepositoryInterface $penalizacionRepository,
         TicketRepositoryInterface $ticketRepository,
         EstacionamientoAdminRepositoryInterface $estacionamientoRepository,
         TarifaCalculatorService $tarifaCalculator
     ) {
+        $this->penalizacionRepository = $penalizacionRepository;
         $this->ticketRepository = $ticketRepository;
         $this->estacionamientoRepository = $estacionamientoRepository;
         $this->tarifaCalculator = $tarifaCalculator;
@@ -96,9 +102,279 @@ class PenalizacionService
     }
 
     /**
+     * Obtener todas las penalizaciones
+     */
+    public function getAllPenalizaciones(): array
+    {
+        try {
+            $penalizaciones = $this->penalizacionRepository->all();
+            return [
+                'success' => true,
+                'data' => $penalizaciones,
+                'message' => 'Penalizaciones obtenidas exitosamente'
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo penalizaciones: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error interno del servidor'
+            ];
+        }
+    }
+
+    /**
+     * Get paginated penalizaciones with advanced sorting and filtering
+     */
+    public function getPaginatedPenalizaciones(
+        int $page = 1, 
+        int $perPage = 10, 
+        array $filters = [],
+        ?string $sortBy = null,
+        string $sortOrder = 'desc'
+    ): \Illuminate\Pagination\LengthAwarePaginator {
+        try {
+            return $this->penalizacionRepository->getPaginated($page, $perPage, $filters, $sortBy, $sortOrder);
+        } catch (\Exception $e) {
+            throw new \Exception('Error al obtener penalizaciones paginadas: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener penalizaciones con filtros
+     */
+    public function getPenalizacionesWithFilters(array $filters, ?string $search = null, int $perPage = 15): array
+    {
+        try {
+            $result = $this->penalizacionRepository->getWithFilters($filters, $search, $perPage);
+            return [
+                'success' => true,
+                'data' => $result['data'],
+                'pagination' => [
+                    'total' => $result['total'],
+                    'per_page' => $result['per_page'],
+                    'current_page' => $result['current_page'],
+                    'last_page' => $result['last_page'],
+                    'from' => $result['from'],
+                    'to' => $result['to']
+                ],
+                'filters_applied' => $filters,
+                'search' => $search,
+                'message' => 'Penalizaciones filtradas obtenidas exitosamente'
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo penalizaciones con filtros: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error interno del servidor'
+            ];
+        }
+    }
+
+    /**
+     * Crear nueva penalización
+     */
+    public function createPenalizacion(array $data): array
+    {
+        try {
+            // Validar que el ticket existe
+            $ticket = $this->ticketRepository->find($data['ticket_id']);
+            if (!$ticket) {
+                return [
+                    'success' => false,
+                    'message' => 'Ticket no encontrado'
+                ];
+            }
+
+            // Usar el cálculo de monto si no se especifica
+            if (!isset($data['monto'])) {
+                $data['monto'] = $this->calculatePenaltyAmount($data['tipo_penalizacion']);
+            }
+
+            // Asegurar estado por defecto
+            $data['estado'] = $data['estado'] ?? 'pendiente';
+            $data['fecha'] = $data['fecha'] ?? now();
+
+            $penalizacion = $this->penalizacionRepository->create($data);
+
+            Log::info('Penalización creada exitosamente', [
+                'penalizacion_id' => $penalizacion->id,
+                'ticket_id' => $data['ticket_id'],
+                'tipo' => $data['tipo_penalizacion'],
+                'monto' => $data['monto']
+            ]);
+
+            return [
+                'success' => true,
+                'data' => $penalizacion,
+                'message' => 'Penalización creada exitosamente'
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error creando penalización: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error interno del servidor'
+            ];
+        }
+    }
+
+    /**
+     * Apply penalty to a ticket
+     */
+    public function applyPenalty(array $data): Penalizacion
+    {
+        try {
+            // Verificar que el ticket existe
+            $ticket = $this->ticketRepository->find($data['ticket_id']);
+            if (!$ticket) {
+                throw new \Exception('Ticket no encontrado');
+            }
+
+            // Calcular el monto de la penalización si no se proporciona
+            if (!isset($data['monto'])) {
+                $data['monto'] = $this->calculatePenaltyAmount($data['tipo_penalizacion'], $ticket);
+            }
+
+            // Crear la penalización
+            $penalizacionData = [
+                'ticket_id' => $data['ticket_id'],
+                'usuario_id' => $ticket->usuario_id,
+                'tipo_penalizacion' => $data['tipo_penalizacion'],
+                'descripcion' => $data['descripcion'],
+                'monto' => $data['monto'],
+                'estado' => 'pendiente',
+                'fecha_penalizacion' => now(),
+                'razon_mal_estacionamiento' => $data['razon_mal_estacionamiento'] ?? null
+            ];
+
+            return $this->penalizacionRepository->create($penalizacionData);
+        } catch (\Exception $e) {
+            throw new \Exception('Error al aplicar penalización: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Mark penalty as paid
+     */
+    public function markAsPaid(int $id): ?Penalizacion
+    {
+        try {
+            $penalizacion = $this->penalizacionRepository->find($id);
+            if (!$penalizacion) {
+                return null;
+            }
+
+            return $this->penalizacionRepository->markAsPaid($id);
+        } catch (\Exception $e) {
+            throw new \Exception('Error al marcar penalización como pagada: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener penalización por ID
+     */
+    public function getPenalizacionById(int $id): array
+    {
+        try {
+            $penalizacion = $this->penalizacionRepository->find($id);
+            
+            if (!$penalizacion) {
+                return [
+                    'success' => false,
+                    'message' => 'Penalización no encontrada'
+                ];
+            }
+
+            return [
+                'success' => true,
+                'data' => $penalizacion,
+                'message' => 'Penalización obtenida exitosamente'
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo penalización: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error interno del servidor'
+            ];
+        }
+    }
+
+    /**
+     * Actualizar penalización
+     */
+    public function updatePenalizacion(int $id, array $data): ?Penalizacion
+    {
+        try {
+            $penalizacion = $this->penalizacionRepository->find($id);
+            
+            if (!$penalizacion) {
+                return null;
+            }
+
+            return $this->penalizacionRepository->update($id, $data);
+        } catch (\Exception $e) {
+            throw new \Exception('Error al actualizar penalización: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Eliminar penalización
+     */
+    public function deletePenalizacion(int $id): bool
+    {
+        try {
+            $penalizacion = $this->penalizacionRepository->find($id);
+            
+            if (!$penalizacion) {
+                return false;
+            }
+
+            return $this->penalizacionRepository->delete($id);
+        } catch (\Exception $e) {
+            throw new \Exception('Error al eliminar penalización: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener estadísticas de penalizaciones
+     */
+    public function getStatistics(): array
+    {
+        try {
+            $stats = $this->penalizacionRepository->getStatistics();
+            return [
+                'success' => true,
+                'data' => $stats,
+                'message' => 'Estadísticas obtenidas exitosamente'
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo estadísticas: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error interno del servidor'
+            ];
+        }
+    }
+
+    /**
+     * Calcular monto de penalización por tipo
+     */
+    public function calculatePenaltyAmount(string $tipo): float
+    {
+        $montos = [
+            'tiempo_excedido' => 15.00,
+            'dano_propiedad' => 100.00,
+            'mal_estacionamiento' => 25.00
+        ];
+
+        return $montos[$tipo] ?? 20.00;
+    }
+
+    /**
      * Aplicar penalización por daño a la propiedad
      */
-    public function aplicarPenalizacionDano(int $ticketId, string $descripcion, float $monto = 100.00): array
+    public function aplicarPenalizacionDano(int $ticketId, string $descripcion, ?float $monto = null): array
     {
         try {
             $ticket = $this->ticketRepository->find($ticketId);
@@ -109,10 +385,13 @@ class PenalizacionService
                 ];
             }
 
+            // Usar monto calculado si no se especifica
+            $montoFinal = $monto ?? $this->calculatePenaltyAmount('dano_propiedad');
+
             $penalizacion = [
                 'ticket_id' => $ticketId,
                 'tipo' => 'dano_propiedad',
-                'monto' => $monto,
+                'monto' => $montoFinal,
                 'descripcion' => $descripcion,
                 'fecha_aplicacion' => now(),
                 'estado' => 'pendiente'
@@ -123,6 +402,7 @@ class PenalizacionService
             return [
                 'success' => true,
                 'message' => 'Penalización aplicada por daño a la propiedad',
+                'penalizacion_aplicada' => true,
                 'penalizacion' => $penalizacion
             ];
 
@@ -174,6 +454,7 @@ class PenalizacionService
             return [
                 'success' => true,
                 'message' => 'Penalización aplicada por mal estacionamiento',
+                'penalizacion_aplicada' => true,
                 'penalizacion' => $penalizacion
             ];
 

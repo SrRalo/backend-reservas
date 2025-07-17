@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Repositories\Interfaces\TicketRepositoryInterface;
+use App\Services\TicketService;
 use App\Http\Requests\TicketRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -13,10 +14,14 @@ use App\Exceptions\EntityNotFoundException;
 class TicketController extends Controller
 {
     private TicketRepositoryInterface $ticketRepository;
+    private TicketService $ticketService;
 
-    public function __construct(TicketRepositoryInterface $ticketRepository)
-    {
+    public function __construct(
+        TicketRepositoryInterface $ticketRepository,
+        TicketService $ticketService
+    ) {
         $this->ticketRepository = $ticketRepository;
+        $this->ticketService = $ticketService;
     }
 
     /**
@@ -270,35 +275,39 @@ class TicketController extends Controller
     public function finalizeTicket(int $id): JsonResponse
     {
         try {
-            $ticket = $this->ticketRepository->find($id);
-            
-            if (!$ticket) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Ticket no encontrado'
-                ], 404);
+            $result = $this->ticketService->finalizeTicket($id);
+
+            if (!$result['success']) {
+                return response()->json($result, 400);
             }
 
-            if ($ticket->estado !== 'activo') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solo se pueden finalizar tickets activos'
-                ], 400);
-            }
-
-            $updatedTicket = $this->ticketRepository->update($id, [
-                'estado' => 'finalizado',
-                'fecha_salida' => now()
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'data' => $updatedTicket,
-                'message' => 'Ticket finalizado exitosamente'
-            ]);
+            return response()->json($result);
 
         } catch (\Exception $e) {
             Log::error('Error finalizando ticket: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
+
+    /**
+     * Report a ticket (admin action)
+     */
+    public function reportTicket(int $id): JsonResponse
+    {
+        try {
+            $result = $this->ticketService->reportTicket($id);
+
+            if (!$result['success']) {
+                return response()->json($result, 400);
+            }
+
+            return response()->json($result);
+
+        } catch (\Exception $e) {
+            Log::error('Error reportando ticket: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error interno del servidor'

@@ -7,6 +7,7 @@ use App\Services\ReservaService;
 use App\Services\TarifaCalculatorService;
 use App\Services\EstacionamientoService;
 use App\Services\PenalizacionService;
+use App\Services\PrecioService;
 use App\Services\PagoService;
 use App\Repositories\Interfaces\PenalizacionRepositoryInterface;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class ReservaBusinessController extends Controller
     private EstacionamientoService $estacionamientoService;
     private PenalizacionService $penalizacionService;
     private PagoService $pagoService;
+    private PrecioService $precioService;
     private PenalizacionRepositoryInterface $penalizacionRepository;
 
     public function __construct(
@@ -28,6 +30,7 @@ class ReservaBusinessController extends Controller
         EstacionamientoService $estacionamientoService,
         PenalizacionService $penalizacionService,
         PagoService $pagoService,
+        PrecioService $precioService,
         PenalizacionRepositoryInterface $penalizacionRepository
     ) {
         $this->reservaService = $reservaService;
@@ -35,6 +38,7 @@ class ReservaBusinessController extends Controller
         $this->estacionamientoService = $estacionamientoService;
         $this->penalizacionService = $penalizacionService;
         $this->pagoService = $pagoService;
+        $this->precioService = $precioService;
         $this->penalizacionRepository = $penalizacionRepository;
     }
 
@@ -187,39 +191,20 @@ class ReservaBusinessController extends Controller
                 'dias_estimados' => 'sometimes|integer|min:1|max:365'
             ]);
 
-            // Obtener datos del estacionamiento desde la base de datos
-            $estacionamiento = \App\Models\EstacionamientoAdmin::find($validatedData['estacionamiento_id']);
-            
-            if (!$estacionamiento) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Estacionamiento no encontrado'
-                ], 400);
-            }
+            $result = $this->precioService->calcularPrecioEstimado(
+                $validatedData['estacionamiento_id'],
+                $validatedData['tipo_reserva'],
+                $validatedData['horas_estimadas'] ?? null,
+                $validatedData['dias_estimados'] ?? null
+            );
 
-            // Calcular precio según tipo de reserva
-            $precioEstimado = 0;
-            $tipoReserva = $validatedData['tipo_reserva'];
-
-            if ($tipoReserva === 'por_horas') {
-                $horas = $validatedData['horas_estimadas'] ?? 1;
-                $precioEstimado = $horas * $estacionamiento->precio_por_hora;
-            } else if ($tipoReserva === 'mensual') {
-                $precioEstimado = $estacionamiento->precio_mensual;
+            if (!$result['success']) {
+                return response()->json($result, 400);
             }
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'precio_estimado' => $precioEstimado,
-                    'tipo_reserva' => $tipoReserva,
-                    'duracion' => $tipoReserva === 'por_horas' ? ($validatedData['horas_estimadas'] ?? 1) : 1,
-                    'estacionamiento_id' => $estacionamiento->id,
-                    'detalles' => [
-                        'precio_por_hora' => $estacionamiento->precio_por_hora,
-                        'precio_mensual' => $estacionamiento->precio_mensual
-                    ]
-                ],
+                'data' => $result['data'],
                 'message' => 'Precio estimado calculado exitosamente'
             ]);
 

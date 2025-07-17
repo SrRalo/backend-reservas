@@ -2,38 +2,71 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\Interfaces\VehiculoRepositoryInterface;
+use App\Services\VehiculoService;
+use App\Http\Requests\CreateVehiculoRequest;
+use App\Http\Requests\UpdateVehiculoRequest;
+use App\Http\Requests\PaginationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class VehiculoController extends Controller
 {
-    private VehiculoRepositoryInterface $vehiculoRepository;
+    private VehiculoService $vehiculoService;
 
-    public function __construct(VehiculoRepositoryInterface $vehiculoRepository)
+    public function __construct(VehiculoService $vehiculoService)
     {
-        $this->vehiculoRepository = $vehiculoRepository;
+        $this->vehiculoService = $vehiculoService;
+        
+        // Middleware de autenticación para todas las rutas
+        $this->middleware('auth:sanctum');
+        
+        // Middleware de autorización específico por método
+        $this->middleware('permission:view-all-vehiculos')->only(['index', 'getStatistics']);
+        $this->middleware('permission:create-vehiculos')->only(['store']);
+        $this->middleware('permission:update-vehiculos')->only(['update']);
+        $this->middleware('permission:delete-vehiculos')->only(['destroy']);
+        
+        // Middleware de roles para métodos específicos
+        $this->middleware('role:admin')->only(['destroy']);
     }
 
     /**
-     * Display a listing of the resource.
+     * Display a listing of vehicles with advanced pagination and filters
      */
-    public function index(): JsonResponse
+    public function index(PaginationRequest $request): JsonResponse
     {
         try {
-            $vehiculos = $this->vehiculoRepository->all();
+            $paginationParams = $request->getPaginationParams();
+            $filters = $request->getFilterParams();
+            
+            $vehiculos = $this->vehiculoService->getPaginatedVehiculos(
+                $paginationParams['page'],
+                $paginationParams['per_page'],
+                $filters
+            );
             
             return response()->json([
                 'success' => true,
-                'data' => $vehiculos,
+                'data' => $vehiculos->items(),
+                'pagination' => [
+                    'current_page' => $vehiculos->currentPage(),
+                    'last_page' => $vehiculos->lastPage(),
+                    'per_page' => $vehiculos->perPage(),
+                    'total' => $vehiculos->total(),
+                    'from' => $vehiculos->firstItem(),
+                    'to' => $vehiculos->lastItem(),
+                    'has_more_pages' => $vehiculos->hasMorePages()
+                ],
+                'filters_applied' => $filters,
                 'message' => 'Vehículos obtenidos exitosamente'
             ]);
         } catch (\Exception $e) {
             Log::error('Error obteniendo vehículos: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error interno del servidor'
+                'message' => 'Error al obtener los vehículos',
+                'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
