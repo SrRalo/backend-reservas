@@ -13,6 +13,7 @@ use App\Http\Controllers\PenalizacionController;
 use App\Http\Controllers\Business\ReservaBusinessController;
 use App\Http\Controllers\Business\ReportesBusinessController;
 use App\Http\Controllers\Api\DashboardAdminController;
+use App\Http\Controllers\Api\SystemMonitorController;
 
 // Rutas públicas de autenticación
 Route::post('/register', [UsuarioAuthController::class, 'register']);
@@ -323,6 +324,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/usuarios/{id}/role', [UsuarioReservaController::class, 'updateRole'])->middleware('role:admin');
     Route::get('/usuarios/stats/roles', [UsuarioReservaController::class, 'getRoleStats'])->middleware('role:admin');
     
+    // System Monitor Routes
+    Route::get('/system/stats', [SystemMonitorController::class, 'getSystemStats'])->middleware('role:admin');
+    Route::post('/system/test-websocket', [SystemMonitorController::class, 'testWebSocket']);
+    
     // Estacionamientos routes
     Route::get('/estacionamientos', [EstacionamientoAdminController::class, 'index'])->middleware('auth:sanctum');
     Route::post('/estacionamientos', [EstacionamientoAdminController::class, 'store'])->middleware('auth:sanctum')->middleware('role:admin,registrador');
@@ -361,6 +366,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/penalizaciones/user/{userId}', [PenalizacionController::class, 'getPenalizationsByUser']);
     Route::post('/penalizaciones/apply', [PenalizacionController::class, 'applyPenalty']);
     Route::post('/penalizaciones/{id}/pay', [PenalizacionController::class, 'payPenalty']);
+
+    // System Monitor WebSocket routes
+    Route::get('/system/status', [SystemMonitorController::class, 'getStatus']);
+    Route::get('/system/health', [SystemMonitorController::class, 'healthCheck']);
+    Route::post('/system/broadcast', [SystemMonitorController::class, 'broadcastTestEvent']);
+    Route::get('/system/stats', [SystemMonitorController::class, 'getSystemStats']);
 });
 
 // Manteniendo compatibilidad con rutas existentes

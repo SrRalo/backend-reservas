@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Repositories\Interfaces\TicketRepositoryInterface;
 use App\Services\TicketService;
 use App\Http\Requests\TicketRequest;
+use App\Events\ReservaStatusEvent;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -65,6 +66,17 @@ class TicketController extends Controller
             ]);
 
             $ticket = $this->ticketRepository->create($validatedData);
+
+            // Emitir evento WebSocket para nueva reserva
+            ReservaStatusEvent::dispatch([
+                'ticket_id' => $ticket->id,
+                'usuario_id' => $ticket->usuario_id,
+                'estacionamiento_id' => $ticket->estacionamiento_id,
+                'status' => $ticket->estado,
+                'tipo_reserva' => $ticket->tipo_reserva,
+                'action' => 'created',
+                'timestamp' => now()->toISOString()
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -145,6 +157,17 @@ class TicketController extends Controller
 
             $updatedTicket = $this->ticketRepository->update($id, $validatedData);
 
+            // Emitir evento WebSocket para actualización de reserva
+            ReservaStatusEvent::dispatch([
+                'ticket_id' => $updatedTicket->id,
+                'usuario_id' => $updatedTicket->usuario_id,
+                'estacionamiento_id' => $updatedTicket->estacionamiento_id,
+                'status' => $updatedTicket->estado,
+                'tipo_reserva' => $updatedTicket->tipo_reserva,
+                'action' => 'updated',
+                'timestamp' => now()->toISOString()
+            ]);
+
             return response()->json([
                 'success' => true,
                 'data' => $updatedTicket,
@@ -180,6 +203,17 @@ class TicketController extends Controller
                     'message' => 'Ticket no encontrado'
                 ], 404);
             }
+
+            // Emitir evento WebSocket antes de eliminar
+            ReservaStatusEvent::dispatch([
+                'ticket_id' => $ticket->id,
+                'usuario_id' => $ticket->usuario_id,
+                'estacionamiento_id' => $ticket->estacionamiento_id,
+                'status' => 'eliminado',
+                'tipo_reserva' => $ticket->tipo_reserva,
+                'action' => 'deleted',
+                'timestamp' => now()->toISOString()
+            ]);
 
             $this->ticketRepository->delete($id);
 
@@ -279,6 +313,20 @@ class TicketController extends Controller
 
             if (!$result['success']) {
                 return response()->json($result, 400);
+            }
+
+            // Emitir evento WebSocket para finalización de reserva
+            if (isset($result['data'])) {
+                $ticket = $result['data'];
+                ReservaStatusEvent::dispatch([
+                    'ticket_id' => $ticket->id ?? $id,
+                    'usuario_id' => $ticket->usuario_id ?? null,
+                    'estacionamiento_id' => $ticket->estacionamiento_id ?? null,
+                    'status' => 'finalizado',
+                    'tipo_reserva' => $ticket->tipo_reserva ?? null,
+                    'action' => 'finalized',
+                    'timestamp' => now()->toISOString()
+                ]);
             }
 
             return response()->json($result);
