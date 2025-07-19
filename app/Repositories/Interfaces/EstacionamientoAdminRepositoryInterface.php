@@ -15,4 +15,6 @@ interface EstacionamientoAdminRepositoryInterface extends BaseRepositoryInterfac
     public function incrementarReservas(int $id): bool;
     public function decrementarReservas(int $id): bool;
     public function getEstacionamientosConEspacios(): Collection;
+    public function getByUsuario(int $usuarioId): Collection;
+    public function getEstacionamientosActivos(): Collection;
 }

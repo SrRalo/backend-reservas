@@ -1,0 +1,59 @@
+{
+  "success": true,
+  "message": "Estadísticas del dashboard obtenidas exitosamente",
+  "data": {
+    "metricas_principales": {
+      "total_ingresos": 0,
+      "total_reservas": 0,
+      "plazas_totales": 1,
+      "tasa_ocupacion": 0
+    },
+    "ingresos_periodo": [
+      {
+        "fecha": "2025-01-12",
+        "ingresos": 0
+      },
+      {
+        "fecha": "2025-01-13",
+        "ingresos": 0
+      },
+      {
+        "fecha": "2025-01-14",
+        "ingresos": 0
+      },
+      {
+        "fecha": "2025-01-15",
+        "ingresos": 0
+      },
+      {
+        "fecha": "2025-01-16",
+        "ingresos": 0
+      },
+      {
+        "fecha": "2025-01-17",
+        "ingresos": 0
+      },
+      {
+        "fecha": "2025-01-18",
+        "ingresos": 0
+      }
+    ],
+    "estado_reservas": [],
+    "estado_plazas": {
+      "disponibles": 1,
+      "ocupadas": 0,
+      "en_mantenimiento": 0,
+      "total": 1
+    },
+    "metricas_rendimiento": {
+      "ingreso_promedio": 0,
+      "tasa_finalizacion": 0,
+      "reservas_activas": 0
+    },
+    "periodo": {
+      "tipo": "semana",
+      "fecha_inicio": "2025-01-12",
+      "fecha_fin": "2025-01-18"
+    }
+  }
+}

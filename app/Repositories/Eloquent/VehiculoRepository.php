@@ -33,4 +33,68 @@ class VehiculoRepository extends BaseRepository implements VehiculoRepositoryInt
     {
         return $this->model->where('estado', 'activo')->get();
     }
+
+    public function getAll(): Collection
+    {
+        return $this->model->with(['usuario'])->get();
+    }
+
+    public function getPaginated(int $page = 1, int $perPage = 10, array $filters = []): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        $query = $this->model->with(['usuario']);
+
+        // Aplicar filtros si existen
+        if (!empty($filters['placa'])) {
+            $query->where('placa', 'like', '%' . $filters['placa'] . '%');
+        }
+        if (!empty($filters['tipo'])) {
+            $query->where('tipo', $filters['tipo']);
+        }
+        if (!empty($filters['estado'])) {
+            $query->where('estado', $filters['estado']);
+        }
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    public function hasActiveReservations(int $vehiculoId): bool
+    {
+        // Implementación simple - puedes ajustar según tu lógica de negocio
+        return $this->model->where('id', $vehiculoId)
+                          ->where('estado', 'activo')
+                          ->exists();
+    }
+
+    public function getStatistics(): array
+    {
+        $total = $this->model->count();
+        $activos = $this->model->where('estado', 'activo')->count();
+        $inactivos = $this->model->where('estado', 'inactivo')->count();
+
+        return [
+            'total' => $total,
+            'activos' => $activos,
+            'inactivos' => $inactivos
+        ];
+    }
+
+    public function getWithFilters(array $filters): Collection
+    {
+        $query = $this->model->with(['usuario']);
+
+        if (!empty($filters['placa'])) {
+            $query->where('placa', 'like', '%' . $filters['placa'] . '%');
+        }
+        if (!empty($filters['tipo'])) {
+            $query->where('tipo', $filters['tipo']);
+        }
+        if (!empty($filters['estado'])) {
+            $query->where('estado', $filters['estado']);
+        }
+        if (!empty($filters['usuario_id'])) {
+            $query->where('usuario_id', $filters['usuario_id']);
+        }
+
+        return $query->get();
+    }
 }

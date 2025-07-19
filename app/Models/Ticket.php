@@ -26,7 +26,7 @@ class Ticket extends Model
     protected $casts = [
         'fecha_entrada' => 'datetime',
         'fecha_salida' => 'datetime',
-        'precio_total' => 'decimal:2',
+        'precio_total' => 'float',
     ];
 
     protected $attributes = [

@@ -50,4 +50,14 @@ class EstacionamientoAdminRepository extends BaseRepository implements Estaciona
     {
         return $this->model->where('espacios_disponibles', '>', 0)->get();
     }
+
+    public function getByUsuario(int $usuarioId): Collection
+    {
+        return $this->model->where('usuario_id', $usuarioId)->get();
+    }
+
+    public function getEstacionamientosActivos(): Collection
+    {
+        return $this->model->where('estado', 'activo')->get();
+    }
 }

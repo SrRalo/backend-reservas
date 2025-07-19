@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\VehiculoRequest;
 use App\Models\Vehiculo;
 use App\Services\VehiculoService;
@@ -16,14 +15,18 @@ use Illuminate\Support\Facades\Auth;
  *     description="Operaciones relacionadas con la gestión de vehículos"
  * )
  */
-class VehiculoController extends Controller
+class VehiculoController extends BaseApiController
 {
-    private $vehiculoService;
+    private VehiculoService $vehiculoService;
 
     public function __construct(VehiculoService $vehiculoService)
     {
+        parent::__construct();
         $this->vehiculoService = $vehiculoService;
-        $this->middleware('auth:sanctum');
+    }
+
+    protected function applyRoleMiddleware(): void
+    {
         $this->middleware('role:admin,registrador,reservador');
     }
 
@@ -54,20 +57,6 @@ class VehiculoController extends Controller
      *         required=false,
      *         @OA\Schema(type="string", example="ABC123")
      *     ),
-     *     @OA\Parameter(
-     *         name="tipo",
-     *         in="query",
-     *         description="Filtrar por tipo de vehículo",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"auto", "motocicleta", "camioneta"})
-     *     ),
-     *     @OA\Parameter(
-     *         name="estado",
-     *         in="query",
-     *         description="Filtrar por estado",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"activo", "inactivo"})
-     *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Lista de vehículos obtenida exitosamente",
@@ -76,60 +65,24 @@ class VehiculoController extends Controller
      *             @OA\Property(property="data", type="array", @OA\Items(type="object")),
      *             @OA\Property(property="pagination", type="object")
      *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="No autorizado",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="No autorizado")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Prohibido",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="Prohibido")
-     *         )
      *     )
      * )
      */
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
-        $perPage = $request->get('per_page', 10);
-        $search = $request->get('search');
-        $tipo = $request->get('tipo');
-        $estado = $request->get('estado', 'activo');
+        $filters = [];
         
-        $query = Vehiculo::with(['usuario', 'penalizaciones'])
-            ->where('estado', $estado);
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('patente', 'LIKE', "%{$search}%")
-                  ->orWhere('marca', 'LIKE', "%{$search}%")
-                  ->orWhere('modelo', 'LIKE', "%{$search}%")
-                  ->orWhere('color', 'LIKE', "%{$search}%");
-            });
+        // Solo admin puede ver todos los vehículos
+        if (Auth::user()->role !== 'admin') {
+            $filters['usuario_id'] = Auth::id();
         }
 
-        if ($tipo) {
-            $query->where('tipo', $tipo);
-        }
-
-        $vehiculos = $query->paginate($perPage);
-
-        return response()->json([
-            'data' => $vehiculos->items(),
-            'pagination' => [
-                'current_page' => $vehiculos->currentPage(),
-                'per_page' => $vehiculos->perPage(),
-                'total' => $vehiculos->total(),
-                'last_page' => $vehiculos->lastPage(),
-                'has_more_pages' => $vehiculos->hasMorePages()
-            ]
-        ]);
+        return $this->indexResponse(
+            $this->vehiculoService,
+            $filters,
+            10,
+            'Vehículos obtenidos exitosamente'
+        );
     }
 
     /**
@@ -170,10 +123,11 @@ class VehiculoController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $vehiculo = Vehiculo::with(['usuario', 'penalizaciones'])
-            ->findOrFail($id);
-
-        return response()->json($vehiculo);
+        return $this->showResponse(
+            $this->vehiculoService,
+            $id,
+            'Vehículo obtenido exitosamente'
+        );
     }
 
     /**
@@ -232,9 +186,11 @@ class VehiculoController extends Controller
         $data['usuario_id'] = Auth::id();
         $data['estado'] = 'activo';
 
-        $vehiculo = $this->vehiculoService->crearVehiculo($data);
-
-        return response()->json($vehiculo, 201);
+        return $this->storeResponse(
+            $this->vehiculoService,
+            $data,
+            'Vehículo creado exitosamente'
+        );
     }
 
     /**
@@ -312,9 +268,13 @@ class VehiculoController extends Controller
         }
 
         $data = $request->validated();
-        $vehiculo = $this->vehiculoService->actualizarVehiculo($vehiculo, $data);
-
-        return response()->json($vehiculo);
+        
+        return $this->updateResponse(
+            $this->vehiculoService,
+            $id,
+            $data,
+            'Vehículo actualizado exitosamente'
+        );
     }
 
     /**
@@ -373,8 +333,10 @@ class VehiculoController extends Controller
             return response()->json(['message' => 'No tienes permisos para eliminar este vehículo'], 403);
         }
 
-        $this->vehiculoService->eliminarVehiculo($vehiculo);
-
-        return response()->json(['message' => 'Vehículo eliminado exitosamente']);
+        return $this->destroyResponse(
+            $this->vehiculoService,
+            $id,
+            'Vehículo eliminado exitosamente'
+        );
     }
 }

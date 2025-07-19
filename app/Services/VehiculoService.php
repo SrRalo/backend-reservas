@@ -3,89 +3,14 @@
 namespace App\Services;
 
 use App\Models\Vehiculo;
-use App\Repositories\VehiculoRepositoryInterface;
+use App\Repositories\Interfaces\VehiculoRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Pagination\LengthAwarePaginator;
 
-class VehiculoService
+class VehiculoService extends BaseService
 {
-    protected VehiculoRepositoryInterface $vehiculoRepository;
-
     public function __construct(VehiculoRepositoryInterface $vehiculoRepository)
     {
-        $this->vehiculoRepository = $vehiculoRepository;
-    }
-
-    /**
-     * Get all vehicles
-     */
-    public function getAllVehiculos(): Collection
-    {
-        try {
-            return $this->vehiculoRepository->getAll();
-        } catch (\Exception $e) {
-            throw new \Exception('Error al obtener vehículos: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Get paginated vehicles
-     */
-    public function getPaginatedVehiculos(int $page = 1, int $perPage = 10, array $filters = []): LengthAwarePaginator
-    {
-        try {
-            return $this->vehiculoRepository->getPaginated($page, $perPage, $filters);
-        } catch (\Exception $e) {
-            throw new \Exception('Error al obtener vehículos paginados: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Get vehicle by ID
-     */
-    public function getVehiculoById(int $id): ?Vehiculo
-    {
-        try {
-            return $this->vehiculoRepository->find($id);
-        } catch (\Exception $e) {
-            throw new \Exception('Error al obtener vehículo: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Crear un nuevo vehículo
-     */
-    public function crearVehiculo(array $data): Vehiculo
-    {
-        try {
-            return $this->vehiculoRepository->create($data);
-        } catch (\Exception $e) {
-            throw new \Exception('Error al crear vehículo: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Actualizar un vehículo existente
-     */
-    public function actualizarVehiculo(Vehiculo $vehiculo, array $data): Vehiculo
-    {
-        try {
-            return $this->vehiculoRepository->update($vehiculo, $data);
-        } catch (\Exception $e) {
-            throw new \Exception('Error al actualizar vehículo: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Eliminar un vehículo
-     */
-    public function eliminarVehiculo(Vehiculo $vehiculo): bool
-    {
-        try {
-            return $this->vehiculoRepository->delete($vehiculo);
-        } catch (\Exception $e) {
-            throw new \Exception('Error al eliminar vehículo: ' . $e->getMessage());
-        }
+        $this->repository = $vehiculoRepository;
     }
 
     /**
@@ -94,7 +19,7 @@ class VehiculoService
     public function getVehiculoByPlaca(string $placa): ?Vehiculo
     {
         try {
-            return $this->vehiculoRepository->findByPlaca($placa);
+            return $this->repository->findByPlaca($placa);
         } catch (\Exception $e) {
             throw new \Exception('Error al buscar vehículo por placa: ' . $e->getMessage());
         }
@@ -106,65 +31,57 @@ class VehiculoService
     public function getVehiculosByUsuario(int $usuarioId): Collection
     {
         try {
-            return $this->vehiculoRepository->getByUsuario($usuarioId);
+            return $this->repository->getByUsuario($usuarioId);
         } catch (\Exception $e) {
             throw new \Exception('Error al obtener vehículos del usuario: ' . $e->getMessage());
         }
     }
 
     /**
-     * Get vehicle statistics
+     * Get active vehicles only
      */
-    public function getStatistics(): array
+    public function getActiveVehiculos(): Collection
     {
         try {
-            return $this->vehiculoRepository->getStatistics();
+            return $this->repository->getByEstado('activo');
         } catch (\Exception $e) {
-            throw new \Exception('Error al obtener estadísticas de vehículos: ' . $e->getMessage());
+            throw new \Exception('Error al obtener vehículos activos: ' . $e->getMessage());
         }
     }
 
     /**
-     * Validate vehicle data
+     * Check if vehicle exists by placa
      */
-    public function validateVehicleData(array $data): array
+    public function existsByPlaca(string $placa): bool
     {
-        $errors = [];
-
-        // Validar placa
-        if (!isset($data['placa']) || empty($data['placa'])) {
-            $errors[] = 'La placa es requerida';
-        } elseif (!preg_match('/^[A-Z]{3}-\d{3}$/', $data['placa'])) {
-            $errors[] = 'La placa debe tener el formato ABC-123';
+        try {
+            return $this->repository->existsByPlaca($placa);
+        } catch (\Exception $e) {
+            throw new \Exception('Error al verificar existencia del vehículo: ' . $e->getMessage());
         }
+    }
 
-        // Validar marca
-        if (!isset($data['marca']) || empty($data['marca'])) {
-            $errors[] = 'La marca es requerida';
+    /**
+     * Activate vehicle
+     */
+    public function activateVehiculo(Vehiculo $vehiculo): Vehiculo
+    {
+        try {
+            return $this->repository->update($vehiculo, ['estado' => 'activo']);
+        } catch (\Exception $e) {
+            throw new \Exception('Error al activar vehículo: ' . $e->getMessage());
         }
+    }
 
-        // Validar modelo
-        if (!isset($data['modelo']) || empty($data['modelo'])) {
-            $errors[] = 'El modelo es requerido';
+    /**
+     * Deactivate vehicle
+     */
+    public function deactivateVehiculo(Vehiculo $vehiculo): Vehiculo
+    {
+        try {
+            return $this->repository->update($vehiculo, ['estado' => 'inactivo']);
+        } catch (\Exception $e) {
+            throw new \Exception('Error al desactivar vehículo: ' . $e->getMessage());
         }
-
-        // Validar año
-        if (!isset($data['año']) || !is_numeric($data['año'])) {
-            $errors[] = 'El año debe ser un número';
-        } elseif ($data['año'] < 1900 || $data['año'] > date('Y') + 1) {
-            $errors[] = 'El año debe estar entre 1900 y ' . (date('Y') + 1);
-        }
-
-        // Validar color
-        if (!isset($data['color']) || empty($data['color'])) {
-            $errors[] = 'El color es requerido';
-        }
-
-        // Validar tipo
-        if (!isset($data['tipo']) || empty($data['tipo'])) {
-            $errors[] = 'El tipo es requerido';
-        }
-
-        return $errors;
     }
 }

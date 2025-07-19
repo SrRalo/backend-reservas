@@ -6,6 +6,7 @@ use App\Repositories\Interfaces\EstacionamientoAdminRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class EstacionamientoAdminController extends Controller
 {
@@ -22,7 +23,27 @@ class EstacionamientoAdminController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $estacionamientos = $this->estacionamientoRepository->all();
+            $user = Auth::user();
+            
+            // Si es admin, obtener todos los estacionamientos
+            if ($user->isAdmin()) {
+                $estacionamientos = $this->estacionamientoRepository->all();
+            } 
+            // Si es registrador, obtener solo sus estacionamientos
+            elseif ($user->isRegistrador()) {
+                $estacionamientos = $this->estacionamientoRepository->getByUsuario($user->id);
+            }
+            // Si es reservador, obtener todos los estacionamientos activos (para poder reservar)
+            elseif ($user->isReservador()) {
+                $estacionamientos = $this->estacionamientoRepository->getEstacionamientosActivos();
+            }
+            // Cualquier otro rol no tiene acceso
+            else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para acceder a esta información'
+                ], 403);
+            }
             
             return response()->json([
                 'success' => true,
@@ -54,6 +75,20 @@ class EstacionamientoAdminController extends Controller
                 'precio_mensual' => 'required|numeric|min:0',
                 'estado' => 'sometimes|in:activo,inactivo'
             ]);
+
+            $user = Auth::user();
+            
+            // Si es registrador, asignar automáticamente su ID
+            if ($user->hasRole('registrador')) {
+                $validatedData['usuario_id'] = $user->id;
+            }
+            // Si es admin, puede especificar el usuario_id o dejarlo null
+            elseif ($user->hasRole('admin')) {
+                // Si no se especifica usuario_id, se puede dejar null (estacionamiento global)
+                if ($request->has('usuario_id')) {
+                    $validatedData['usuario_id'] = $request->input('usuario_id');
+                }
+            }
 
             $estacionamiento = $this->estacionamientoRepository->create($validatedData);
 
@@ -113,6 +148,7 @@ class EstacionamientoAdminController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         try {
+            $user = Auth::user();
             $estacionamiento = $this->estacionamientoRepository->find($id);
             
             if (!$estacionamiento) {
@@ -120,6 +156,14 @@ class EstacionamientoAdminController extends Controller
                     'success' => false,
                     'message' => 'Estacionamiento no encontrado'
                 ], 404);
+            }
+
+            // Si es registrador, verificar que el estacionamiento le pertenece
+            if ($user->hasRole('registrador') && $estacionamiento->usuario_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para editar este estacionamiento'
+                ], 403);
             }
 
             $validatedData = $request->validate([
@@ -162,6 +206,7 @@ class EstacionamientoAdminController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
+            $user = Auth::user();
             $estacionamiento = $this->estacionamientoRepository->find($id);
             
             if (!$estacionamiento) {
@@ -169,6 +214,14 @@ class EstacionamientoAdminController extends Controller
                     'success' => false,
                     'message' => 'Estacionamiento no encontrado'
                 ], 404);
+            }
+
+            // Si es registrador, verificar que el estacionamiento le pertenece
+            if ($user->hasRole('registrador') && $estacionamiento->usuario_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos para eliminar este estacionamiento'
+                ], 403);
             }
 
             $this->estacionamientoRepository->delete($id);

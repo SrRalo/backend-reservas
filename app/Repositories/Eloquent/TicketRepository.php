@@ -14,6 +14,14 @@ class TicketRepository extends BaseRepository implements TicketRepositoryInterfa
         parent::__construct($model);
     }
 
+    /**
+     * Override all() to include relationships
+     */
+    public function all(): Collection
+    {
+        return $this->model->with(['usuario', 'vehiculo', 'estacionamiento'])->get();
+    }
+
     public function findActiveTickets(): Collection
     {
         return $this->model->where('estado', 'activo')->get();
@@ -21,7 +29,8 @@ class TicketRepository extends BaseRepository implements TicketRepositoryInterfa
 
     public function findByUsuario(int $usuarioId): Collection
     {
-        return $this->model->where('usuario_id', $usuarioId)->get();
+        return $this->model->with(['usuario', 'vehiculo', 'estacionamiento'])
+                          ->where('usuario_id', $usuarioId)->get();
     }
 
     public function findByVehiculo(int $vehiculoId): Collection
@@ -75,5 +84,16 @@ class TicketRepository extends BaseRepository implements TicketRepositoryInterfa
         return $this->model->where('estacionamiento_id', $estacionamientoId)
                           ->where('estado', 'pagado')
                           ->sum('monto');
+    }
+
+    // Alias methods for controller compatibility
+    public function getByUser(int $usuarioId): Collection
+    {
+        return $this->findByUsuario($usuarioId);
+    }
+
+    public function getByCode(string $codigo): ?Ticket
+    {
+        return $this->findByCodigo($codigo);
     }
 }

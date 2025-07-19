@@ -132,4 +132,10 @@ class UsuarioReserva extends Authenticatable
     {
         return $this->hasMany(\App\Models\Ticket::class, 'usuario_id');
     }
+
+    // ✅ Relación con estacionamientos (para registradores)
+    public function estacionamientos()
+    {
+        return $this->hasMany(\App\Models\EstacionamientoAdmin::class, 'usuario_id');
+    }
 }

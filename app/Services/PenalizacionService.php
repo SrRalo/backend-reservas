@@ -11,9 +11,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-class PenalizacionService
+class PenalizacionService extends BaseService
 {
-    private PenalizacionRepositoryInterface $penalizacionRepository;
     private TicketRepositoryInterface $ticketRepository;
     private EstacionamientoAdminRepositoryInterface $estacionamientoRepository;
     private TarifaCalculatorService $tarifaCalculator;
@@ -24,7 +23,7 @@ class PenalizacionService
         EstacionamientoAdminRepositoryInterface $estacionamientoRepository,
         TarifaCalculatorService $tarifaCalculator
     ) {
-        $this->penalizacionRepository = $penalizacionRepository;
+        parent::__construct($penalizacionRepository);
         $this->ticketRepository = $ticketRepository;
         $this->estacionamientoRepository = $estacionamientoRepository;
         $this->tarifaCalculator = $tarifaCalculator;

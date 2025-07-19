@@ -65,7 +65,7 @@ namespace App\Http\Controllers;
  *     description="Reportes y estadísticas"
  * )
  */
-abstract class Controller
+abstract class Controller extends \Illuminate\Routing\Controller
 {
     //
 }

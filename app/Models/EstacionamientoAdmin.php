@@ -12,6 +12,7 @@ class EstacionamientoAdmin extends Model
     protected $table = 'estacionamientoadmin';
 
     protected $fillable = [
+        'usuario_id',
         'nombre',
         'email',
         'direccion',
@@ -33,4 +34,20 @@ class EstacionamientoAdmin extends Model
     protected $attributes = [
         'estado' => 'activo'
     ];
+
+    /**
+     * Relación con el usuario (registrador)
+     */
+    public function usuario()
+    {
+        return $this->belongsTo(UsuarioReserva::class, 'usuario_id');
+    }
+
+    /**
+     * Relación con tickets
+     */
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class, 'estacionamiento_id');
+    }
 }
